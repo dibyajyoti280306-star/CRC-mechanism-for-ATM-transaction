@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM Transaction Integrity Using CRC</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+<div class="shell">
+
+  <!-- ===== Header, progress and story ===== -->
+  <header id="pageHeader">
+    <div class="brand">
+      <i data-lucide="shield-check" class="brand-icon"></i>
+      <div>
+        <h1>ATM Transaction Integrity Using CRC</h1>
+        <p class="subtitle">
+          Simulating secure ATM transaction data transmission and CRC error detection
+        </p>
+        <div class="chips">
+  <span>CRC-6</span>
+  <span>Generator 1000111</span>
+  <span>x^6 + x^2 + x + 1</span>
+</div>
+      </div>
+    </div>
+
+    <ol id="steps" class="steps" aria-label="Progress">
+      <li data-step="1" class="current">
+        <i data-lucide="credit-card"></i><span>Create transaction</span>
+      </li>
+      <li data-step="2">
+        <i data-lucide="radio-tower"></i><span>Transmit</span>
+      </li>
+      <li data-step="3">
+        <i data-lucide="landmark"></i><span>Verify at bank</span>
+      </li>
+    </ol>
+
+    <div id="story" class="story" data-tone="" aria-live="polite">
+      <i data-lucide="book-open"></i>
+      <p id="storyText">Customer enters a transaction</p>
+    </div>
+  </header>
+
+
+  <!-- ===== Accuracy ===== -->
+  <section id="accuracy" class="panel">
+
+    <div class="panel-head">
+      <span class="chip"><i data-lucide="gauge"></i></span>
+      <div class="titles">
+        <h2>System accuracy</h2>
+        <p>CRC detection test</p>
+      </div>
+      <button type="button" id="runTestBtn" class="btn primary">
+        <i data-lucide="play"></i><span id="runTestLabel">Run accuracy test</span>
+      </button>
+    </div>
+
+    <div class="acc-body">
+
+      <div class="group acc-overall">
+        <h3 class="group-title"><i data-lucide="target"></i>Overall</h3>
+        <div class="acc-center c-blue">
+          <div id="ringAll" class="ring big" role="img" aria-label="Overall accuracy">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track-c" cx="50" cy="50" r="45"></circle>
+              <circle class="fill-c" cx="50" cy="50" r="45"></circle>
+            </svg>
+            <span class="num">--</span>
+          </div>
+          <p id="cntAll" class="acc-count">&nbsp;</p>
+        </div>
+      </div>
+
+      <div class="group acc-types">
+        <h3 class="group-title"><i data-lucide="list-checks"></i>By error type</h3>
+        <div class="acc-small">
+
+          <div class="acc-item c-green">
+            <div id="ringNONE" class="ring small" role="img" aria-label="No error accuracy">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="track-c" cx="50" cy="50" r="45"></circle>
+                <circle class="fill-c" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="num">--</span>
+            </div>
+            <p class="acc-name">No error</p>
+            <p id="cntNONE" class="acc-count">&nbsp;</p>
+          </div>
+
+          <div class="acc-item c-cyan">
+            <div id="ringSINGLE" class="ring small" role="img" aria-label="Single-bit accuracy">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="track-c" cx="50" cy="50" r="45"></circle>
+                <circle class="fill-c" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="num">--</span>
+            </div>
+            <p class="acc-name">Single-bit</p>
+            <p id="cntSINGLE" class="acc-count">&nbsp;</p>
+          </div>
+
+          <div class="acc-item c-violet">
+            <div id="ringMULTIPLE" class="ring small" role="img" aria-label="Multiple-bit accuracy">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="track-c" cx="50" cy="50" r="45"></circle>
+                <circle class="fill-c" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="num">--</span>
+            </div>
+            <p class="acc-name">Multiple-bit</p>
+            <p id="cntMULTIPLE" class="acc-count">&nbsp;</p>
+          </div>
+
+          <div class="acc-item c-amber">
+            <div id="ringBURST" class="ring small" role="img" aria-label="Burst accuracy">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="track-c" cx="50" cy="50" r="45"></circle>
+                <circle class="fill-c" cx="50" cy="50" r="45"></circle>
+              </svg>
+              <span class="num">--</span>
+            </div>
+            <p class="acc-name">Burst</p>
+            <p id="cntBURST" class="acc-count">&nbsp;</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <p id="accNote" class="acc-note">Not run yet</p>
+
+  </section>
+
+
+  <!-- ===== ATM  |  Channel  |  Bank ===== -->
+  <main id="stage">
+
+    <!-- ATM (sender) -->
+    <section id="atmScreen" class="panel">
+
+      <div class="panel-head">
+        <span class="chip"><i data-lucide="credit-card"></i></span>
+        <div class="titles">
+          <h2>ATM terminal</h2>
+          <p>Sender</p>
+        </div>
+        <span id="atmStatus" class="status ready">Ready for input</span>
+      </div>
+
+      <!-- Box 1: the customer's request -->
+      <div id="atmForm" class="group">
+
+        <h3 class="group-title"><i data-lucide="user-round"></i>Customer request</h3>
+
+        <label for="accId">
+          <i data-lucide="user-round"></i>Account ID
+        </label>
+        <input
+          type="text"
+          id="accId"
+          list="accountHistory"
+          placeholder="Example: ACC1023"
+          autocomplete="off"
+        >
+        <datalist id="accountHistory"></datalist>
+
+        <div class="row2">
+          <div>
+            <label for="txnType">
+              <i data-lucide="arrow-left-right"></i>Transaction type
+            </label>
+            <select id="txnType">
+              <option value="WITHDRAW">Withdrawal</option>
+              <option value="DEPOSIT">Deposit</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="amount">
+              <i data-lucide="indian-rupee"></i>Amount (₹)
+            </label>
+            <input
+              type="number"
+              id="amount"
+              placeholder="Enter amount"
+              min="1"
+            >
+          </div>
+        </div>
+
+        <p id="formError" class="form-error" role="alert"></p>
+
+        <button type="button" id="generateBtn" class="btn primary">
+          <i data-lucide="binary"></i>Generate transaction
+        </button>
+
+      </div>
+
+
+      <!-- Boxes 2 and 3: the frame and the send action -->
+      <div id="txnSummary" hidden>
+
+  <div id="summaryTxn" class="group"></div>
+  <div id="summaryCrc" class="group"></div>
+
+  <div class="group">
+    <h3 class="group-title"><i data-lucide="layers"></i>Frame details</h3>
+    <details>
+      <summary><i data-lucide="binary"></i>View binary data</summary>
+      <div id="binaryData" class="dbody"></div>
+    </details>
+    <details>
+      <summary><i data-lucide="sigma"></i>View CRC calculation</summary>
+      <div id="crcCalc" class="dbody"></div>
+    </details>
+  </div>
+
+  <div class="group send">
+    <h3 class="group-title"><i data-lucide="send"></i>Ready to send</h3>
+    <button type="button" id="initiateBtn" class="btn transmit">
+      <i data-lucide="send"></i>Initiate transmission
+    </button>
+  </div>
+
+</div>
+
+    </section>
+
+
+    <!-- Channel -->
+    <div id="link" class="channel" data-state="idle" data-noise="0">
+      <div class="track">
+        <span class="noise-mark"><i data-lucide="zap"></i></span>
+        <div id="packet"><i data-lucide="package"></i></div>
+      </div>
+      <i data-lucide="radio-tower" class="channel-icon"></i>
+      <p id="linkText">Channel idle</p>
+    </div>
+
+
+    <!-- Bank (receiver) -->
+    <section id="bankPanel" class="panel">
+
+      <div class="panel-head">
+        <span class="chip"><i data-lucide="landmark"></i></span>
+        <div class="titles">
+          <h2>Bank server</h2>
+          <p>Receiver</p>
+        </div>
+        <span id="bankStatus" class="status">Idle</span>
+      </div>
+
+      <div id="bankIdle" class="idle">
+        <i data-lucide="inbox"></i>
+        <p><strong id="bankIdleTitle">Waiting for a transmission</strong></p>
+        <p id="bankIdleText">Nothing received yet</p>
+      </div>
+
+      <div id="bankScreen" hidden>
+
+        <!-- Box 1: the verdict -->
+        <div id="finalBanner"></div>
+
+        <!-- Box 2: what the bank received -->
+        <div class="group">
+          <h3 class="group-title"><i data-lucide="inbox"></i>What arrived</h3>
+          <div id="bankReceived"></div>
+        </div>
+
+        <!-- Box 3: how the bank checked it -->
+       <div id="bankSummary"></div>
+
+<div class="group grow">
+  <h3 class="group-title"><i data-lucide="calculator"></i>Verification details</h3>
+  <details>
+    <summary><i data-lucide="binary"></i>View received binary data</summary>
+    <div id="receivedBits" class="dbody"></div>
+  </details>
+  <details>
+    <summary><i data-lucide="sigma"></i>View CRC verification</summary>
+    <div id="verification" class="dbody"></div>
+  </details>
+</div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ===== Session records ===== -->
+  <section id="sessionBox">
+
+    <details id="historyBox">
+      <summary>
+        <i data-lucide="history"></i>Transaction history
+        <span id="historyCount" class="count">0</span>
+      </summary>
+
+      <div class="dbody">
+        <table id="historyTable">
+          <thead>
+            <tr>
+              <th>Transaction</th>
+              <th>Type</th>
+              <th>Error</th>
+              <th>CRC result</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr id="historyEmpty">
+              <td colspan="5" class="empty">No transactions yet</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+
+    <details id="reportBox">
+      <summary><i data-lucide="chart-column"></i>CRC analysis</summary>
+
+      <div class="dbody">
+        <table id="analysisTable">
+          <thead>
+            <tr>
+              <th>Condition</th>
+              <th>Runs</th>
+              <th>Error detected</th>
+              <th>Not detected</th>
+              <th>Observation</th>
+            </tr>
+          </thead>
+          <tbody id="analysisBody"></tbody>
+        </table>
+      </div>
+    </details>
+
+  </section>
+
+</div>
+
+
+<!-- ===== Transmission configuration popup ===== -->
+<div id="modalBackdrop" hidden>
+
+  <div
+    id="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+  >
+
+    <button type="button" id="closeModalBtn" aria-label="Close">&times;</button>
+
+    <h2 id="modalTitle"><i data-lucide="radio-tower"></i>Transmission configuration</h2>
+    <p class="modal-sub"><span id="modalBits"></span></p>
+
+    <p class="optTitle">Error type</p>
+
+    <div class="choice">
+
+      <label class="opt">
+        <input type="radio" name="errorType" value="NONE" checked>
+        <span class="opt-body">
+          <i data-lucide="circle-check"></i>
+          <b>No error</b>
+        </span>
+      </label>
+
+      <label class="opt">
+        <input type="radio" name="errorType" value="SINGLE">
+        <span class="opt-body">
+          <i data-lucide="circle-dot"></i>
+          <b>Single-bit error</b>
+        </span>
+      </label>
+
+      <label class="opt">
+        <input type="radio" name="errorType" value="MULTIPLE">
+        <span class="opt-body">
+          <i data-lucide="grip"></i>
+          <b>Multiple-bit error</b>
+        </span>
+      </label>
+
+      <label class="opt">
+        <input type="radio" name="errorType" value="BURST">
+        <span class="opt-body">
+          <i data-lucide="activity"></i>
+          <b>Burst error</b>
+        </span>
+      </label>
+
+    </div>
+
+
+    <!-- Single-bit error -->
+    <div id="singleOptions" class="options" hidden>
+
+      <div class="seg">
+        <label>
+          <input type="radio" name="singleMode" value="RANDOM" checked>
+          <span>Random</span>
+        </label>
+        <label>
+          <input type="radio" name="singleMode" value="SELECT">
+          <span>Selection</span>
+        </label>
+      </div>
+
+      <div id="singleBitWrap" hidden>
+        <label for="singleBit" class="fieldlabel">Bit position</label>
+        <input type="number" id="singleBit" min="1" placeholder="Example: 129">
+      </div>
+
+    </div>
+
+
+    <!-- Multiple-bit error -->
+    <div id="multipleOptions" class="options" hidden>
+
+      <label for="multipleCount" class="fieldlabel">Number of bits to change</label>
+      <input type="number" id="multipleCount" min="2" value="3">
+
+    </div>
+
+
+    <!-- Burst error -->
+    <div id="burstOptions" class="options" hidden>
+
+      <p class="optTitle">Starting position</p>
+
+      <div class="seg">
+        <label>
+          <input type="radio" name="burstMode" value="RANDOM" checked>
+          <span>Random</span>
+        </label>
+        <label>
+          <input type="radio" name="burstMode" value="SELECT">
+          <span>Selection</span>
+        </label>
+      </div>
+
+      <div id="burstStartWrap" hidden>
+        <label for="burstStart" class="fieldlabel">Starting bit position</label>
+        <input type="number" id="burstStart" min="1" placeholder="Example: 120">
+      </div>
+
+      <label for="burstLength" class="fieldlabel">Burst length</label>
+      <input type="number" id="burstLength" min="2" value="6">
+
+    </div>
+
+
+    <p id="modalError" role="alert"></p>
+
+    <button type="button" id="simulateBtn" class="btn transmit">
+      <i data-lucide="zap"></i>Simulate transmission
+    </button>
+
+  </div>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
